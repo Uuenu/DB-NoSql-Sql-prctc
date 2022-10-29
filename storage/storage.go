@@ -13,4 +13,12 @@ type Storager interface {
 }
 
 type Student struct {
+	Firstname string `json:"firstname" bson:"firstname"`
+	Lastname  string `json:"lastname" bson:"lastname"`
+	Group     string `json:"group" bson:"group"`
+	Email     string `json:"email" bson:"email"`
+	Use       int    `json:"use" bson:"use"`
+	YearBirth int    `json:"year_birth" bson:"year_birth"`
+	IsLocal   bool   `json:"is_local" bson:"is_local"`
+	//PasswordHash string `json:"-" bson:"password"`
 }

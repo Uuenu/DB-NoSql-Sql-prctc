@@ -15,9 +15,12 @@ func main() {
 
 	update := make(map[string]interface{})
 	update["Use"] = 310
-	stor.UpdateStudent("Cody", update)
 
-	fmt.Println(stor.Student("Cody"))
+	updateStd := stor.Student("Cody")
+	updateStd.Use = 310
+	stor.UpdateStudent("Cody", updateStd)
+
+	fmt.Println(stor.TableStudents())
 
 	stor.DB.Drop(stor.Ctx)
 

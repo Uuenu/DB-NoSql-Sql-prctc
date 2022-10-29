@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"test-go/storage"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -38,67 +39,62 @@ func New() *Storage {
 	return &s
 }
 
-func (s Storage) SaveStudent(firstname, lastname, group, email string, use, yearBirth int, isLocal bool) {
-	student := bson.M{
-		"Firstname": firstname,
-		"Lastname":  lastname,
-		"Group":     group,
-		"Email":     email,
-		"Use":       use,
-		"YearBirth": yearBirth,
-		"IsLocal":   isLocal,
+func (s Storage) SaveStudent(firstname, lastname, group, email string, use, yearBirth int, isLocal bool) { // fix in future
+	student := storage.Student{
+		Firstname: firstname,
+		Lastname:  lastname,
+		Group:     group,
+		Email:     email,
+		Use:       use,
+		YearBirth: yearBirth,
+		IsLocal:   isLocal,
 	}
 	s.DB.Collection("Students").InsertOne(s.Ctx, student)
 }
 
-func (s Storage) UpdateStudent(studentID string, updateParams map[string]interface{}) {
-	//opts := options.FindOneAndUpdate()
-	update := bson.M{}
-	for key, value := range updateParams {
-		update[key] = value
-	}
-	s.DB.Collection("Students").UpdateOne(s.Ctx, bson.M{"Firstname": studentID}, bson.M{"$set": update})
+func (s Storage) UpdateStudent(studentID string, student storage.Student) {
+	s.DB.Collection("Students").UpdateOne(s.Ctx, bson.M{"firstname": studentID}, bson.M{"$set": student})
 }
 
-func (s Storage) Student(studentID string) bson.M {
-	var result bson.M
-	s.DB.Collection("Students").FindOne(s.Ctx, bson.M{"Firstname": studentID}).Decode(&result)
+func (s Storage) Student(studentID string) storage.Student {
+	var result storage.Student
+	s.DB.Collection("Students").FindOne(s.Ctx, bson.M{"firstname": studentID}).Decode(&result)
 	return result
 }
 
-func (s Storage) TableStudents() ([]bson.M, error) {
+func (s Storage) TableStudents() ([]storage.Student, error) {
 	opts := options.Find()
-	opts.SetSort(bson.M{"Use": -1})
+	opts.SetSort(bson.M{"use": -1})
 	sortCursor, err := s.DB.Collection("Students").Find(s.Ctx, bson.D{{}}, opts)
 	if err != nil {
 		return nil, err
 	}
-	var episodesSorted []bson.M
-	if err = sortCursor.All(s.Ctx, &episodesSorted); err != nil {
+	var studentsTable []storage.Student
+	if err = sortCursor.All(s.Ctx, &studentsTable); err != nil {
 		return nil, err
 	}
-	return episodesSorted, nil
+	return studentsTable, nil
 }
 
-func (s Storage) TbStudentsSort(sortParam string) ([]bson.M, error) {
+func (s Storage) TbStudentsSort(sortParam string) ([]storage.Student, error) {
 	opts := options.Find()
 	opts.SetSort(bson.M{sortParam: -1})
 	sortCursor, err := s.DB.Collection("Students").Find(s.Ctx, bson.D{{}}, opts)
 	if err != nil {
 		return nil, err
 	}
-	var episodesSorted []bson.M
-	if err = sortCursor.All(s.Ctx, &episodesSorted); err != nil {
+	var studentsTable []storage.Student
+	if err = sortCursor.All(s.Ctx, &studentsTable); err != nil {
 		return nil, err
 	}
-	return episodesSorted, nil
+	return studentsTable, nil
 }
 
 func (s Storage) StudentsAge(limitAge int) {
 	opts := options.Find()
 	opts.SetSort(bson.M{"Age": -1})
 	//opts.SetBatchSize(1)
-	sortCursor, err := s.DB.Collection("Students").Find(s.Ctx, bson.M{"Age": bson.M{"$lte": limitAge}}, opts)
+	sortCursor, err := s.DB.Collection("Students").Find(s.Ctx, bson.M{"age": bson.M{"$lte": limitAge}}, opts)
 	if err != nil {
 		log.Printf("%s", err)
 	}
@@ -109,7 +105,7 @@ func (s Storage) StudentsAge(limitAge int) {
 	}
 	fmt.Println(episodesSorted)
 
-	filterCursor, err := s.DB.Collection("Students").Find(s.Ctx, bson.M{"Age": 25})
+	filterCursor, err := s.DB.Collection("Students").Find(s.Ctx, bson.M{"age": 25})
 	if err != nil {
 		log.Fatal(err)
 	}
