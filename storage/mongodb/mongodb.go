@@ -7,6 +7,7 @@ import (
 	"test-go/storage"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -39,7 +40,7 @@ func New() *Storage {
 	return &s
 }
 
-func (s Storage) SaveStudent(firstname, lastname, group, email string, use, yearBirth int, isLocal bool) { // fix in future
+func (s Storage) SaveStudent(firstname, lastname, group, email string, use, yearBirth int, isLocal bool) error { // fix in future
 	student := storage.Student{
 		Firstname: firstname,
 		Lastname:  lastname,
@@ -49,16 +50,50 @@ func (s Storage) SaveStudent(firstname, lastname, group, email string, use, year
 		YearBirth: yearBirth,
 		IsLocal:   isLocal,
 	}
-	s.DB.Collection("Students").InsertOne(s.Ctx, student)
+
+	_, err := s.DB.Collection("Students").InsertOne(s.Ctx, student)
+	return err
 }
 
-func (s Storage) UpdateStudent(studentID string, student storage.Student) {
-	s.DB.Collection("Students").UpdateOne(s.Ctx, bson.M{"firstname": studentID}, bson.M{"$set": student})
+func (s Storage) UpdateStudent(student storage.Student) error {
+
+	oid, err := primitive.ObjectIDFromHex(student.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update student %v", err)
+	}
+
+	filter := bson.M{"_id": oid}
+
+	studentBytes, err := bson.Marshal(student)
+	if err != nil {
+		return fmt.Errorf("failed to marshal student .error %v", err)
+	}
+
+	var updatesUserObj bson.M
+	if err = bson.Unmarshal(studentBytes, &updatesUserObj); err != nil {
+		return fmt.Errorf("failed to unmarshal studentsBytes .error %v", err)
+	}
+
+	delete(updatesUserObj, "_id")
+
+	update := bson.M{
+		"$set": updatesUserObj,
+	}
+
+	result, err := s.DB.Collection("Students").UpdateOne(s.Ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to update student .error %v", err)
+	}
+	if result.MatchedCount == 0 {
+		// TODO ErrEntityNotFound
+		return fmt.Errorf("not found")
+	}
+	return nil
 }
 
-func (s Storage) Student(studentID string) storage.Student {
+func (s Storage) Student(firstname string) storage.Student {
 	var result storage.Student
-	s.DB.Collection("Students").FindOne(s.Ctx, bson.M{"firstname": studentID}).Decode(&result)
+	s.DB.Collection("Students").FindOne(s.Ctx, bson.M{"firstname": firstname}).Decode(&result)
 	return result
 }
 
@@ -92,7 +127,7 @@ func (s Storage) TbStudentsSort(sortParam string) ([]storage.Student, error) {
 
 func (s Storage) StudentsAge(limitAge int) {
 	opts := options.Find()
-	opts.SetSort(bson.M{"Age": -1})
+	opts.SetSort(bson.M{"age": -1})
 	//opts.SetBatchSize(1)
 	sortCursor, err := s.DB.Collection("Students").Find(s.Ctx, bson.M{"age": bson.M{"$lte": limitAge}}, opts)
 	if err != nil {

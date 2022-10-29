@@ -5,7 +5,7 @@ import (
 )
 
 type Storager interface {
-	SaveStudent(firstname, lastname, group, email string, use, yearBirth int, isLocal bool)
+	SaveStudent(firstname, lastname, group, email string, use, yearBirth int, isLocal bool) error
 	UpdateStudent(StudentID string, UpdateParams map[string]interface{}) error
 	TableStudents() ([]bson.M, error)
 	TbStudentsSort(sortParam string) ([]bson.M, error)
@@ -13,6 +13,7 @@ type Storager interface {
 }
 
 type Student struct {
+	ID        string `json:"id" bson:"_id,omitempty"`
 	Firstname string `json:"firstname" bson:"firstname"`
 	Lastname  string `json:"lastname" bson:"lastname"`
 	Group     string `json:"group" bson:"group"`
